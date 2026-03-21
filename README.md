@@ -9,6 +9,7 @@ The package currently covers:
 - typed configuration for connecting to TVHeadend
 - low-level API requests
 - DVR recording queries and helpers for grouping recordings by title
+- EPG event queries with typed response entries
 
 ## Install
 
@@ -65,6 +66,10 @@ upcoming, upcoming_total = client.upcomingRecordings()
 active, active_total = client.activeRecordings()
 channels, channel_total = client.channelGrid()
 connections, connection_total = client.statusConnections()
+epg_events, epg_total = client.epgEvents(limit=200)
+channel_events, channel_epg_total = client.epgEventsOnChannel("ch-1", limit=50)
+window_events, window_total = client.epgEvents(start=1700000000, stop=1700003600)
+window_events_2, window_total_2 = client.epgEventsInWindow(1700000000, 1700003600)
 filtered, grouped = client.filteredTitles(".ts")
 ```
 
@@ -76,6 +81,10 @@ filtered, grouped = client.filteredTitles(".ts")
 - `client.activeRecordings()` maps to `dvr/entry/grid`.
 - `client.channelGrid()` maps to `channel/grid`.
 - `client.statusConnections()` maps to `status/connections`.
+- `client.epgEvents()` maps to `epg/events/grid`.
+- `client.epgEventsOnChannel(channelUuid)` maps to `epg/events/grid` with a channel filter.
+- `client.epgEvents(start=..., stop=...)` maps to `epg/events/grid` with a time-window filter.
+- `client.epgEventsInWindow(start, stop)` is a convenience wrapper for time-window EPG queries.
 - `client.deleteRecording(uuid)` maps to `dvr/entry/remove`.
 - `client.fileMoved(src, dst)` maps to `dvr/entry/filemoved`.
 - recording helpers normalize common title prefixes such as `New:` and `Live:`.

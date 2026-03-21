@@ -11,6 +11,7 @@ from .config import TVHConfig, getConfig
 
 __all__ = [
     "ChannelEntry",
+    "EpgEventEntry",
     "RecordingEntry",
     "StatusConnectionEntry",
     "TVHError",
@@ -18,6 +19,9 @@ __all__ = [
     "allRecordings",
     "channelGrid",
     "deleteRecording",
+    "epgEvents",
+    "epgEventsInWindow",
+    "epgEventsOnChannel",
     "fileMoved",
     "sendToTvh",
     "statusConnections",
@@ -53,6 +57,16 @@ class StatusConnectionEntry(TypedDict, total=False):
     peer: str
     started: int
     streaming: bool
+
+
+class EpgEventEntry(TypedDict, total=False):
+    eventId: int
+    title: str
+    subtitle: str
+    summary: str
+    start: int
+    stop: int
+    channelUuid: str
 
 
 def send_to_tvh(
@@ -185,3 +199,82 @@ def status_connections(
 
 def statusConnections(limit: int = 9999) -> tuple[list[StatusConnectionEntry], int]:
     return status_connections(getConfig(), limit=limit)
+
+
+def epg_events(
+    cfg: TVHConfig,
+    *,
+    limit: int = 9999,
+    channelUuid: str | None = None,
+    title: str | None = None,
+    start: int | None = None,
+    stop: int | None = None,
+) -> tuple[list[EpgEventEntry], int]:
+    params: dict[str, Any] = {"limit": limit}
+    if channelUuid is not None:
+        params["channelUuid"] = channelUuid
+    if title is not None:
+        params["title"] = title
+    if start is not None:
+        params["start"] = start
+    if stop is not None:
+        params["stop"] = stop
+
+    payload = send_to_tvh(cfg, "epg/events/grid", data=params)
+    entries, total = parse_grid_payload(
+        payload,
+        error_message="unexpected TVHeadend EPG payload",
+    )
+    return cast(list[EpgEventEntry], entries), total
+
+
+def epgEvents(
+    *,
+    limit: int = 9999,
+    channelUuid: str | None = None,
+    title: str | None = None,
+    start: int | None = None,
+    stop: int | None = None,
+) -> tuple[list[EpgEventEntry], int]:
+    return epg_events(
+        getConfig(),
+        limit=limit,
+        channelUuid=channelUuid,
+        title=title,
+        start=start,
+        stop=stop,
+    )
+
+
+def epgEventsOnChannel(
+    channelUuid: str,
+    *,
+    limit: int = 9999,
+    start: int | None = None,
+    stop: int | None = None,
+) -> tuple[list[EpgEventEntry], int]:
+    return epg_events(
+        getConfig(),
+        limit=limit,
+        channelUuid=channelUuid,
+        start=start,
+        stop=stop,
+    )
+
+
+def epgEventsInWindow(
+    start: int,
+    stop: int,
+    *,
+    limit: int = 9999,
+    channelUuid: str | None = None,
+    title: str | None = None,
+) -> tuple[list[EpgEventEntry], int]:
+    return epg_events(
+        getConfig(),
+        limit=limit,
+        channelUuid=channelUuid,
+        title=title,
+        start=start,
+        stop=stop,
+    )

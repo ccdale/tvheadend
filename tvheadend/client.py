@@ -6,12 +6,14 @@ from .config import TVHConfig
 from .recordings import RecordingSummary, filteredTitles, recordedTitles
 from .tvh import (
     ChannelEntry,
+    EpgEventEntry,
     RecordingEntry,
     StatusConnectionEntry,
     active_recordings,
     all_recordings,
     channel_grid,
     delete_recording,
+    epg_events,
     file_moved,
     send_to_tvh,
     status_connections,
@@ -45,6 +47,58 @@ class TVHeadendClient:
         limit: int = 9999,
     ) -> tuple[list[StatusConnectionEntry], int]:
         return status_connections(self.config, limit=limit)
+
+    def epgEvents(
+        self,
+        *,
+        limit: int = 9999,
+        channelUuid: str | None = None,
+        title: str | None = None,
+        start: int | None = None,
+        stop: int | None = None,
+    ) -> tuple[list[EpgEventEntry], int]:
+        return epg_events(
+            self.config,
+            limit=limit,
+            channelUuid=channelUuid,
+            title=title,
+            start=start,
+            stop=stop,
+        )
+
+    def epgEventsOnChannel(
+        self,
+        channelUuid: str,
+        *,
+        limit: int = 9999,
+        start: int | None = None,
+        stop: int | None = None,
+    ) -> tuple[list[EpgEventEntry], int]:
+        return epg_events(
+            self.config,
+            limit=limit,
+            channelUuid=channelUuid,
+            start=start,
+            stop=stop,
+        )
+
+    def epgEventsInWindow(
+        self,
+        start: int,
+        stop: int,
+        *,
+        limit: int = 9999,
+        channelUuid: str | None = None,
+        title: str | None = None,
+    ) -> tuple[list[EpgEventEntry], int]:
+        return epg_events(
+            self.config,
+            limit=limit,
+            channelUuid=channelUuid,
+            title=title,
+            start=start,
+            stop=stop,
+        )
 
     def deleteRecording(self, uuid: str) -> None:
         delete_recording(self.config, uuid)

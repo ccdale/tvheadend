@@ -13,6 +13,9 @@ from tvheadend.tvh import (
     allRecordings,
     channelGrid,
     deleteRecording,
+    epgEvents,
+    epgEventsInWindow,
+    epgEventsOnChannel,
     fileMoved,
     sendToTvh,
     statusConnections,
@@ -191,4 +194,112 @@ def test_client_additional_endpoints(monkeypatch) -> None:
         ("dvr/entry/grid", {"limit": 9999}),
         ("channel/grid", {"limit": 12}),
         ("status/connections", {"limit": 34}),
+    ]
+
+
+def test_epg_endpoint_helpers_use_expected_routes(monkeypatch) -> None:
+    calls: list[tuple[str, str, dict[str, object] | None]] = []
+
+    def fake_send(
+        cfg, route: str, data: dict[str, object] | None = None
+    ) -> dict[str, object]:
+        calls.append((cfg.host, route, data))
+        return {"entries": [], "total": 0}
+
+    monkeypatch.setattr("tvheadend.tvh.send_to_tvh", fake_send)
+
+    assert epgEvents() == ([], 0)
+    assert epgEvents(limit=50, title="News") == ([], 0)
+    assert epgEventsOnChannel("ch-1", limit=25) == ([], 0)
+    assert epgEvents(start=1000, stop=2000) == ([], 0)
+    assert epgEventsOnChannel("ch-1", limit=25, start=1000, stop=2000) == ([], 0)
+    assert epgEventsInWindow(
+        1000, 2000, limit=10, channelUuid="ch-1", title="News"
+    ) == ([], 0)
+
+    assert calls == [
+        ("tvh.local", "epg/events/grid", {"limit": 9999}),
+        ("tvh.local", "epg/events/grid", {"limit": 50, "title": "News"}),
+        ("tvh.local", "epg/events/grid", {"limit": 25, "channelUuid": "ch-1"}),
+        ("tvh.local", "epg/events/grid", {"limit": 9999, "start": 1000, "stop": 2000}),
+        (
+            "tvh.local",
+            "epg/events/grid",
+            {"limit": 25, "channelUuid": "ch-1", "start": 1000, "stop": 2000},
+        ),
+        (
+            "tvh.local",
+            "epg/events/grid",
+            {
+                "limit": 10,
+                "channelUuid": "ch-1",
+                "title": "News",
+                "start": 1000,
+                "stop": 2000,
+            },
+        ),
+    ]
+
+
+def test_client_epg_smoke_payload_shape(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_get(url: str, *, params, auth, timeout: float):
+        captured["url"] = url
+        captured["params"] = params
+        captured["auth"] = auth
+        captured["timeout"] = timeout
+        return DummyResponse(
+            json_data={
+                "entries": [
+                    {
+                        "eventId": 42,
+                        "title": "Evening News",
+                        "start": 1700000000,
+                        "stop": 1700001800,
+                        "channelUuid": "ch-1",
+                    }
+                ],
+                "total": 1,
+            }
+        )
+
+    monkeypatch.setattr("tvheadend.tvh.requests.get", fake_get)
+
+    client = TVHeadendClient(configure("tvh.example", "bob", "secret", port=9981))
+    entries, total = client.epgEventsOnChannel("ch-1", limit=5)
+
+    assert total == 1
+    assert len(entries) == 1
+    assert entries[0]["eventId"] == 42
+    assert entries[0]["title"] == "Evening News"
+    assert entries[0]["channelUuid"] == "ch-1"
+    assert captured == {
+        "url": "http://tvh.example:9981/api/epg/events/grid",
+        "params": {"limit": 5, "channelUuid": "ch-1"},
+        "auth": ("bob", "secret"),
+        "timeout": 10.0,
+    }
+
+
+def test_client_epg_window_filters(monkeypatch) -> None:
+    captured: list[dict[str, object]] = []
+
+    def fake_send(
+        cfg, route: str, data: dict[str, object] | None = None
+    ) -> dict[str, object]:
+        assert route == "epg/events/grid"
+        captured.append(data or {})
+        return {"entries": [], "total": 0}
+
+    monkeypatch.setattr("tvheadend.tvh.send_to_tvh", fake_send)
+
+    client = TVHeadendClient(configure("tvh.example", "bob", "secret", port=9981))
+
+    assert client.epgEvents(start=1000, stop=2000) == ([], 0)
+    assert client.epgEventsInWindow(1000, 2000, limit=20, title="Sport") == ([], 0)
+
+    assert captured == [
+        {"limit": 9999, "start": 1000, "stop": 2000},
+        {"limit": 20, "title": "Sport", "start": 1000, "stop": 2000},
     ]
