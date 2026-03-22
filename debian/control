@@ -1,0 +1,13 @@
+Source: python-tvheadend
+Section: python
+Priority: optional
+Maintainer: Chris Allison <chris.charles.allison+tvheadend@gmail.com>
+Build-Depends: debhelper-compat (= 13), dh-python, python3-all, python3-build, python3-installer
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+
+Package: python3-tvheadend
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}, python3-requests
+Description: Remote access helpers for TVHeadend
+ Typed helpers and API wrappers for remote TVHeadend access.

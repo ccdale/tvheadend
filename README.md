@@ -31,6 +31,46 @@ To run tests:
 uv run pytest -q
 ```
 
+## Debian/Ubuntu Build Instructions
+
+Install system dependencies:
+
+```bash
+sudo apt update
+sudo apt install -y git curl python3 python3-venv python3-installer
+```
+
+Install `uv` (if not already installed):
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Build and test from a clone of this repository:
+
+```bash
+uv sync --extra dev
+uv run pytest -q
+uv build
+```
+
+Install the built wheel into the system package root (for packaging workflows):
+
+```bash
+python3 -m installer --destdir="${PWD}/pkgroot" dist/*.whl
+```
+
+Install for local user testing:
+
+```bash
+python3 -m pip install --user dist/*.whl
+```
+
+## Packaging Guides
+
+- Arch Linux packaging: [archlinux/README.md](archlinux/README.md)
+- Debian packaging: [debian/README.md](debian/README.md)
+
 ## Module-level usage
 
 ```python
