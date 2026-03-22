@@ -212,13 +212,16 @@ def epg_events(
 ) -> tuple[list[EpgEventEntry], int]:
     params: dict[str, Any] = {"limit": limit}
     if channelUuid is not None:
-        params["channelUuid"] = channelUuid
+        # TVHeadend EPG grid uses 'channel' (not 'channelUuid') to filter by channel.
+        params["channel"] = channelUuid
     if title is not None:
         params["title"] = title
     if start is not None:
-        params["start"] = start
+        # TVHeadend uses 'startsAfter' / 'startsBefore' for time filtering.
+        # 'start' / 'stop' are event IDs, not Unix timestamps.
+        params["startsAfter"] = start
     if stop is not None:
-        params["stop"] = stop
+        params["startsBefore"] = stop
 
     payload = send_to_tvh(cfg, "epg/events/grid", data=params)
     entries, total = parse_grid_payload(
