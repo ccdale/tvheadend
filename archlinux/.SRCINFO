@@ -1,0 +1,18 @@
+pkgbase = python-tvheadend
+	pkgdesc = Remote access helpers for TVHeadend
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/ccdale/tvheadend
+	arch = any
+	license = custom:unknown
+	makedepends = git
+	makedepends = uv
+	makedepends = python-installer
+	depends = python
+	depends = python-requests
+	provides = tvheadend
+	conflicts = tvheadend
+	source = git+file:////home/chris/src/tvheadend#branch=main
+	md5sums = SKIP
+
+pkgname = python-tvheadend
